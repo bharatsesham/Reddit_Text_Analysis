@@ -47,7 +47,6 @@ class RedditData():
                              password=cg.password)
         return self.reddit
 
-
     def get_reddit_data(self, subreddit, extraction_limit, topics):
         subreddits = self.reddit.subreddit(subreddit)
         top_subreddit = subreddits.top(limit=extraction_limit)  # top
@@ -127,7 +126,6 @@ def text_analysis(input_file):
     title_df['main_subject'] = title_df['title'].apply(subject_extractor)
     print(title_df['title'])
     title_df.to_csv(cg.analysed_output)
-
 
 
 if __name__ == '__main__':
