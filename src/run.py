@@ -11,6 +11,7 @@ from nltk import pos_tag
 # from nltk.tokenize import RegexpTokenizer
 import string
 import config as cg
+from sklearn.feature_extraction.text import TfidfVectorizer
 
 
 topics_dict = {"title": [],
@@ -28,6 +29,7 @@ topics_dict = {"title": [],
 stop_words = set(stopwords.words("english"))
 # ps = PorterStemmer()
 lem = WordNetLemmatizer()
+vectorizer = TfidfVectorizer()
 
 
 def gen_date(created):
@@ -115,24 +117,26 @@ def text_analysis(input_file):
     # Lemmatizing to Base form.
     title_df['title'] = title_df['title'].apply(reduce_to_lemmatization)
     # Combined Analysis
-    # title_combined = ' '.join(str(r) for single_title in title_df['title'].tolist() for r in single_title)
-    # title_combined = word_tokenize(title_combined)
-    # fdist = FreqDist(title_combined)
+    title_combined = ' '.join(str(r) for single_title in title_df['title'].tolist() for r in single_title)
+    title_combined = word_tokenize(title_combined)
+    fdist = FreqDist(title_combined)
     # Entire Data Summary
-    # fdist.plot(30, cumulative=False)
-    # plt.show()
+    matrix = vectorizer.fit_transform(title_combined)
+    for i, feature in enumerate(vectorizer.get_feature_names()):
+        print(i, feature)
+    fdist.plot(30, cumulative=False)
+    plt.show()
     # print(fdist.most_common(25))
-    title_df['title'] = title_df['title'].apply(pos_tag)
-    title_df['main_subject'] = title_df['title'].apply(subject_extractor)
-    print(title_df['title'])
-    title_df.to_csv(cg.analysed_output)
+    # title_df['title'] = title_df['title'].apply(pos_tag)
+    # title_df['main_subject'] = title_df['title'].apply(subject_extractor)
+    # print(title_df['title'])
+    # title_df.to_csv(cg.analysed_output)
 
 
 if __name__ == '__main__':
     pass
-    reddit = RedditData()
-    reddit.connect_reddit_call()
-    topics_dict = reddit.get_reddit_data(cg.subreddit, cg.extraction_limit, topics_dict)
-    fill_csv(topics_dict, cg.output)
-    # text_analysis(cg.output)
-    # print(lem.lemmatize("falsely"))
+    # reddit = RedditData()
+    # reddit.connect_reddit_call()
+    # topics_dict = reddit.get_reddit_data(cg.subreddit, cg.extraction_limit, topics_dict)
+    # fill_csv(topics_dict, cg.output)
+    text_analysis(cg.output)
