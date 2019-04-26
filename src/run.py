@@ -120,7 +120,8 @@ def text_analysis(input_file):
     title_combined = ' '.join(str(r) for single_title in title_df['title'].tolist() for r in single_title)
     title_combined = word_tokenize(title_combined)
     fdist = FreqDist(title_combined)
-    # Entire Data Summary
+        # Entire Data Summary
+    # TF-IDF
     matrix = vectorizer.fit_transform(title_combined)
     for i, feature in enumerate(vectorizer.get_feature_names()):
         print(i, feature)
