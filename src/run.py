@@ -12,7 +12,10 @@ from nltk import pos_tag
 import string
 import config as cg
 from sklearn.feature_extraction.text import TfidfVectorizer
-
+from sklearn.cluster import KMeans
+import re
+from pprint import pprint
+import collections
 
 topics_dict = {"title": [],
                "vote_score": [],
@@ -26,10 +29,18 @@ topics_dict = {"title": [],
                'subreddit_nsfw': []
                }
 
+contractions = {"can't": "cannot",
+                "I'm": "I am",
+                "I've": "I have",
+                "isn't": "is not",
+                }
+contractions_re = re.compile('(%s)' % '|'.join(contractions.keys()))
+
 stop_words = set(stopwords.words("english"))
 # ps = PorterStemmer()
 lem = WordNetLemmatizer()
-vectorizer = TfidfVectorizer()
+# vectorizer = TfidfVectorizer()
+
 
 
 def gen_date(created):
@@ -64,6 +75,12 @@ class RedditData():
             topics['subreddit_subscribers_number'].append(submission.subreddit.subscribers)
             topics['subreddit_nsfw'].append(submission.subreddit.over18)
         return topics
+
+
+def expand_contractions(title, contractions_dict=contractions):
+    def replace(match):
+        return contractions_dict[match.group(0)]
+    return contractions_re.sub(replace, title)
 
 
 def fill_csv(topics, output_path):
@@ -101,14 +118,22 @@ def subject_extractor(title):
     return noun_list
 
 
-def text_analysis(input_file):
-    columns = ['timestamp', 'title','comments_number', 'vote_score']
-    title_df = pd.read_csv(input_file, usecols=columns)
+def cluster_texts(texts, clusters=3):
+    vectorizer = TfidfVectorizer(lowercase=True)
+    tfidf_model = vectorizer.fit_transform(texts)
+    km_model = KMeans(n_clusters=clusters)
+    km_model.fit(tfidf_model)
+    clustering = collections.defaultdict(list)
+    for idx, label in enumerate(km_model.labels_):
+        clustering[label].append(idx)
+    return clustering
+
+
+def process_text(title_df):
     # Individual Data Node
     # Convert 's and 'm to full length meanings.
-
+    title_df['title'] = title_df['title'].apply(expand_contractions)
     # Removing punctuation from the sentence
-    title_df['title_bkp'] = title_df['title']
     title_df['title'] = title_df['title'].apply(tokenize_punctuation)
     # Breaking into Words
     title_df['title'] = title_df['title'].apply(word_tokenize)
@@ -116,22 +141,31 @@ def text_analysis(input_file):
     title_df['title'] = title_df['title'].apply(remove_stopwords)
     # Lemmatizing to Base form.
     title_df['title'] = title_df['title'].apply(reduce_to_lemmatization)
+    return title_df
+
+
+def text_analysis(input_file):
+    columns = ['timestamp', 'title','comments_number', 'vote_score']
+    title_df = pd.read_csv(input_file, usecols=columns)
+    title_df['title_bkp'] = title_df['title']
+    # title_df = process_text(title_df)
     # Combined Analysis
-    title_combined = ' '.join(str(r) for single_title in title_df['title'].tolist() for r in single_title)
+    title_combined = ' '.join(str(single_title) for single_title in title_df['title'].tolist())
     title_combined = word_tokenize(title_combined)
-    fdist = FreqDist(title_combined)
+    # print (title_combined)
+    clusters = cluster_texts(title_combined, 7)
+    pprint(dict(clusters))
+    # fdist = FreqDist(title_combined)
         # Entire Data Summary
-    # TF-IDF
-    matrix = vectorizer.fit_transform(title_combined)
-    for i, feature in enumerate(vectorizer.get_feature_names()):
-        print(i, feature)
-    fdist.plot(30, cumulative=False)
-    plt.show()
+    # for i, feature in enumerate(vectorizer.get_feature_names()):
+    #     print(i, feature)
+    # fdist.plot(30, cumulative=False)
+    # plt.show()
     # print(fdist.most_common(25))
     # title_df['title'] = title_df['title'].apply(pos_tag)
     # title_df['main_subject'] = title_df['title'].apply(subject_extractor)
     # print(title_df['title'])
-    # title_df.to_csv(cg.analysed_output)
+    title_df.to_csv(cg.analysed_output)
 
 
 if __name__ == '__main__':
