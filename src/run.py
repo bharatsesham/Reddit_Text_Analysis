@@ -16,6 +16,7 @@ from sklearn.cluster import KMeans
 import re
 from pprint import pprint
 import collections
+import vector_support_file as vsf
 
 topics_dict = {"title": [],
                "vote_score": [],
@@ -39,7 +40,6 @@ contractions_re = re.compile('(%s)' % '|'.join(contractions.keys()))
 stop_words = set(stopwords.words("english"))
 # ps = PorterStemmer()
 lem = WordNetLemmatizer()
-# vectorizer = TfidfVectorizer()
 
 
 
@@ -112,7 +112,7 @@ def tokenize_punctuation(title):
 def subject_extractor(title):
     noun_list = []
     for word in title:
-        if 'VB' in word[1]:
+        if 'WP' in word[1]:
             noun_list.append(word[0])
             # print (word[0])
     return noun_list
@@ -135,36 +135,53 @@ def process_text(title_df):
     title_df['title'] = title_df['title'].apply(expand_contractions)
     # Removing punctuation from the sentence
     title_df['title'] = title_df['title'].apply(tokenize_punctuation)
+    title_df['title'] = title_df['title'].str.lower()
     # Breaking into Words
     title_df['title'] = title_df['title'].apply(word_tokenize)
     # Removing Stop Words
-    title_df['title'] = title_df['title'].apply(remove_stopwords)
+    # title_df['title'] = title_df['title'].apply(remove_stopwords)
     # Lemmatizing to Base form.
     title_df['title'] = title_df['title'].apply(reduce_to_lemmatization)
     return title_df
 
 
-def text_analysis(input_file):
-    columns = ['timestamp', 'title','comments_number', 'vote_score']
-    title_df = pd.read_csv(input_file, usecols=columns)
-    title_df['title_bkp'] = title_df['title']
-    # title_df = process_text(title_df)
+def sentense_classifier(title):
+    sentense_type = ''
+    for word_list in title:
+        if word_list[0] in vsf.interrogative_word_list:
+            print (word_list[0])
+            sentense_type = 'Interrogative'
+            return sentense_type
+    # return sentense_type
+
+
+def overall_anaylsis(title_df):
+    vectorizer = TfidfVectorizer()
     # Combined Analysis
     title_combined = ' '.join(str(single_title) for single_title in title_df['title'].tolist())
     title_combined = word_tokenize(title_combined)
-    # print (title_combined)
-    clusters = cluster_texts(title_combined, 7)
+    print (title_combined)
+    clusters = cluster_texts(title_combined)
     pprint(dict(clusters))
-    # fdist = FreqDist(title_combined)
+    fdist = FreqDist(title_combined)
         # Entire Data Summary
-    # for i, feature in enumerate(vectorizer.get_feature_names()):
-    #     print(i, feature)
-    # fdist.plot(30, cumulative=False)
-    # plt.show()
-    # print(fdist.most_common(25))
-    # title_df['title'] = title_df['title'].apply(pos_tag)
+    for i, feature in enumerate(vectorizer.get_feature_names()):
+        print(i, feature)
+    fdist.plot(30, cumulative=False)
+    plt.show()
+    print(fdist.most_common(25))
+
+
+def text_analysis(input_file):
+    # columns = ['timestamp', 'title','comments_number', 'vote_score']
+    columns = ['title']
+    title_df = pd.read_csv(input_file, usecols=columns)
+    title_df['title_bkp'] = title_df['title']
+    title_df = process_text(title_df)
+    title_df['title'] = title_df['title'].apply(pos_tag)
+    title_df['sen_type'] = title_df['title'].apply(sentense_classifier)
     # title_df['main_subject'] = title_df['title'].apply(subject_extractor)
-    # print(title_df['title'])
+    # overall_anaylsis(title_df)
     title_df.to_csv(cg.analysed_output)
 
 
