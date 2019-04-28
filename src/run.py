@@ -17,6 +17,8 @@ import re
 from pprint import pprint
 import collections
 import vector_support_file as vsf
+from nltk import RegexpParser
+import nltk.tree as tr
 
 topics_dict = {"title": [],
                "vote_score": [],
@@ -134,7 +136,7 @@ def process_text(title_df):
     # Convert 's and 'm to full length meanings.
     title_df['title'] = title_df['title'].apply(expand_contractions)
     # Removing punctuation from the sentence
-    title_df['title'] = title_df['title'].apply(tokenize_punctuation)
+    # title_df['title'] = title_df['title'].apply(tokenize_punctuation)
     title_df['title'] = title_df['title'].str.lower()
     # Breaking into Words
     title_df['title'] = title_df['title'].apply(word_tokenize)
@@ -146,13 +148,37 @@ def process_text(title_df):
 
 
 def sentense_classifier(title):
-    sentense_type = ''
+    # Interrogative
     for word_list in title:
         if word_list[0] in vsf.interrogative_word_list:
-            print (word_list[0])
-            sentense_type = 'Interrogative'
+            if not (word_list[0] == 'when' and word_list[1] == 'WRB'):
+            # if word_list[1] is not '':
+                print (word_list[0])
+                sentense_type = 'Interrogative'
+                return sentense_type
+    # Imperative
+    chunk = chunk_grammer(title, vsf.imperative_chunkgram)
+    if title[-1][0] != "?":
+        if title[0][1] == "VB" or title[0][1] == "MD":
+            sentense_type = 'Imperative'
             return sentense_type
-    # return sentense_type
+        if type(chunk[0]) is tr.Tree and chunk[0].label() == "VB-Phrase":
+            sentense_type = 'Imperative'
+            return sentense_type
+    else:
+        pls = len([w for w in title if w[0].lower() == "please"]) > 0
+        if pls and (title[0][1] == "VB" or title[0][1] == "MD"):
+            sentense_type = 'Imperative'
+            return sentense_type
+        elif type(chunk[-1]) is tr.Tree and chunk[-1].label() == "Q-Tag":
+            if chunk[0][1] == "VB" or (type(chunk[0]) is tr.Tree and chunk[0].label() == "VB-Phrase"):
+                sentense_type = 'Imperative'
+                return sentense_type
+
+
+def chunk_grammer(title, chunkgram):
+    chunkparser = RegexpParser(chunkgram)
+    return chunkparser.parse(title)
 
 
 def overall_anaylsis(title_df):
@@ -174,7 +200,7 @@ def overall_anaylsis(title_df):
 
 def text_analysis(input_file):
     # columns = ['timestamp', 'title','comments_number', 'vote_score']
-    columns = ['title']
+    columns = ['title', 'sen_type_init']
     title_df = pd.read_csv(input_file, usecols=columns)
     title_df['title_bkp'] = title_df['title']
     title_df = process_text(title_df)
@@ -191,4 +217,9 @@ if __name__ == '__main__':
     # reddit.connect_reddit_call()
     # topics_dict = reddit.get_reddit_data(cg.subreddit, cg.extraction_limit, topics_dict)
     # fill_csv(topics_dict, cg.output)
-    text_analysis(cg.output)
+    # text_analysis(cg.output)
+    sen = ''
+    sen = word_tokenize(sen)
+    sen = pos_tag(sen)
+    print (sen)
+    print (sentense_classifier(sen))
