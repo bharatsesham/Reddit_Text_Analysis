@@ -217,9 +217,4 @@ if __name__ == '__main__':
     # reddit.connect_reddit_call()
     # topics_dict = reddit.get_reddit_data(cg.subreddit, cg.extraction_limit, topics_dict)
     # fill_csv(topics_dict, cg.output)
-    # text_analysis(cg.output)
-    sen = ''
-    sen = word_tokenize(sen)
-    sen = pos_tag(sen)
-    print (sen)
-    print (sentense_classifier(sen))
+    text_analysis(cg.output)
