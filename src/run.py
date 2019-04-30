@@ -147,33 +147,49 @@ def process_text(title_df):
     return title_df
 
 
-def sentense_classifier(title):
+class Sentense_Classifier():
+    def __index__(self, title):
+        self.sentense_type = {"Exclamatory": [], "Interrogative": [], "Imperative": [], "Declarative": []}
+        self.title = title
+
+    # Exclamatory
+    def check_exclamatory(self):
+        if len([w for w in self.title if w[0] == "!"]) > 0:
+            self.sentense_type["Exclamatory"].append(True)
+
     # Interrogative
-    for word_list in title:
-        if word_list[0] in vsf.interrogative_word_list:
-            if not (word_list[0] == 'when' and word_list[1] == 'WRB'):
-            # if word_list[1] is not '':
-                print (word_list[0])
-                sentense_type = 'Interrogative'
-                return sentense_type
+    """Interrogative Sentences can be of two types: 
+        1. wh-questions.
+        2. yes/no question"""
+    # TODO: Determine Yes/No Question Types
+    def check_interrogative(self):
+        for word_list in self.title:
+            if word_list[0] in vsf.interrogative_word_list or len([w for w in self.title if w[0] == "?"]) > 0:
+                if not (word_list[0] == 'when' and word_list[1] == 'WRB'):
+                    self.sentense_type["Interrogative"].append(True)
+
     # Imperative
-    chunk = chunk_grammer(title, vsf.imperative_chunkgram)
-    if title[-1][0] != "?":
-        if title[0][1] == "VB" or title[0][1] == "MD":
-            sentense_type = 'Imperative'
-            return sentense_type
-        if type(chunk[0]) is tr.Tree and chunk[0].label() == "VB-Phrase":
-            sentense_type = 'Imperative'
-            return sentense_type
-    else:
-        pls = len([w for w in title if w[0].lower() == "please"]) > 0
-        if pls and (title[0][1] == "VB" or title[0][1] == "MD"):
-            sentense_type = 'Imperative'
-            return sentense_type
-        elif type(chunk[-1]) is tr.Tree and chunk[-1].label() == "Q-Tag":
-            if chunk[0][1] == "VB" or (type(chunk[0]) is tr.Tree and chunk[0].label() == "VB-Phrase"):
+    # TODO: Add more types chunk grammar patterns and classification based on more punctuations.
+    def check_imperative(self):
+        chunk = chunk_grammer(self.title, vsf.imperative_chunkgram)
+        if self.title[-1][0] != "?":
+            if self.title[0][1] == "VB" or self.title[0][1] == "MD":
                 sentense_type = 'Imperative'
                 return sentense_type
+            if type(chunk[0]) is tr.Tree and chunk[0].label() == "VB-Phrase":
+                sentense_type = 'Imperative'
+                return sentense_type
+        else:
+            pls = len([w for w in self.title if w[0].lower() == "please"]) > 0
+            if pls and (self.title[0][1] == "VB" or self.title[0][1] == "MD"):
+                sentense_type = 'Imperative'
+                return sentense_type
+            elif type(chunk[-1]) is tr.Tree and chunk[-1].label() == "Q-Tag":
+                if chunk[0][1] == "VB" or (type(chunk[0]) is tr.Tree and chunk[0].label() == "VB-Phrase"):
+                    sentense_type = 'Imperative'
+                    return sentense_type
+
+    # TODO: Add the final type of Sentence type - Declarative
 
 
 def chunk_grammer(title, chunkgram):
